@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Flagship Ledger 旗舰级财务智能账本</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #007aff; --success: #34c759; --danger: #ff3b30; --warning: #ff9500;
@@ -95,7 +96,7 @@
         </div>
         <div class="flex-gap">
             <button onclick="toggleDarkMode()">🌓 换肤</button>
-            <button class="btn-p" onclick="showModal('bookModal')">➕多账本</button>
+            <button class="btn-p" onclick="showBookManagementModal()">➕多账本</button>
         </div>
     </div>
 
@@ -105,13 +106,14 @@
             <div style="display:flex; gap:5px;">
                 <select id="filterYear" style="padding:4px" onchange="refreshUI()"></select>
                 <select id="filterMonth" style="padding:4px" onchange="refreshUI()">
-                    <option value="all">✨ 全年概览</option>
+                    <option value="all">全年</option>
                     <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
                     <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
                     <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
                     <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                 </select>
-                <button class="btn-p" style="padding:4px 8px; font-size:12px;" onclick="executeAddYear()">➕年</button>
+                <button class="btn-p" style="padding:4px 8px; font-size:12px; width:auto !important;" onclick="executeAddYear()">➕年</button>
+                <button class="btn-d" style="padding:4px 8px; font-size:12px; width:auto !important;" onclick="executeDeleteYear()">❌年</button>
             </div>
         </div>
         <div class="grid-3">
@@ -137,14 +139,14 @@
     </div>
 
     <div class="card">
-        <h3>⚡ 快速记账流水录入</h3>
-        <div class="type-tabs">
+        <h3 style="margin-bottom: 14px;">⚡ 快速记账</h3>
+        <div class="type-tabs" style="margin-bottom: 16px;">
             <div class="tab-btn active" id="tab-expense" onclick="setRecordType('expense')">支出 ➖</div>
             <div class="tab-btn" id="tab-income" onclick="setRecordType('income')">收入 ➕</div>
             <div class="tab-btn" id="tab-transfer" onclick="setRecordType('transfer')">转账 🔄</div>
         </div>
 
-        <div class="flex-gap" style="flex-direction: column; gap:10px;">
+        <div style="display: flex; flex-direction: column; gap: 15px;">
             <div style="display:flex; gap:10px;">
                 <input type="number" id="inp-amount" placeholder="0.00 金额" style="flex:1; font-size:18px; font-weight:bold;">
                 <input type="date" id="inp-date" style="flex:1;" onchange="syncInputDateToCalendar()">
@@ -167,7 +169,7 @@
             </div>
 
             <div id="normal-account-group">
-                <label style="font-size:12px; color:var(--text-sec)">交易账户</label>
+                <label style="font-size:12px; color:var(--text-sec); display: block; margin-bottom: 6px;">交易账户</label>
                 <select id="inp-account" style="width:100%"></select>
             </div>
 
@@ -181,12 +183,12 @@
                 </select>
             </div>
 
-            <button class="btn-p" style="padding:12px;" onclick="executeAddRecord()">立即记入流水账本</button>
+            <button class="btn-p" style="padding:12px; margin-top: 5px;" onclick="executeAddRecord()">立即记入流水账本</button>
         </div>
     </div>
 
     <div class="card">
-        <h3>📈 数据可视化 analysis 看板</h3>
+        <h3>📈 数据可视化看板</h3>
         <div style="display:flex; gap:10px; margin-bottom:10px;">
             <button id="btnChartBar" style="flex:1; padding:6px;" onclick="changeChartStyle('bar')">柱状分类排行</button>
             <button id="btnChartLine" style="flex:1; padding:6px;" onclick="changeChartStyle('line')">趋势折线图</button>
@@ -197,7 +199,7 @@
     </div>
 
     <div class="card">
-        <h3>🔍 账单多条件智能检索流水</h3>
+        <h3>🔍 智能检索</h3>
         <div class="filter-section flex-gap" style="background:var(--bg); padding:10px; border-radius:8px; margin-bottom:10px;">
             <input type="text" id="search-kw" placeholder="🔍 关键词检索" style="width:100px; padding:5px;">
             <select id="search-acc" style="padding:5px;"><option value="all">所有账户</option></select>
@@ -208,6 +210,7 @@
                 <option value="year">今年全局</option>
             </select>
             <button class="btn-p" style="padding:5px 12px;" onclick="resetToPageOneAndRefresh()">检索</button>
+            <button class="btn-p" style="padding:5px 12px; background:var(--success); width:auto !important;" onclick="executeExportExcel()">📊 导出Excel</button>
         </div>
 
         <ul id="flow-list-render" style="list-style:none; padding:0; margin:0;"></ul>
@@ -238,32 +241,46 @@
     </div>
 
     <div class="card" style="border:1px dashed #ff3b30">
-        <h3 style="color:var(--danger)">🗑️ 账本误删回收站 (<span id="trash-count">0</span>)</h3>
-        <div id="trash-list-render" style="font-size:12px; color:var(--text-sec)"></div>
+        <div class="header-bar" style="margin-bottom: 8px;">
+            <h3 style="color:var(--danger); margin:0;">🗑️ 回收站 (<span id="trash-count">0</span>)</h3>
+            <button class="btn-d" style="padding: 4px 10px; font-size: 11px; width: auto !important; border-radius: 6px;" onclick="executeClearTrash()">💥 一键清空</button>
+        </div>
+        
+        <div id="trash-list-render" style="font-size:12px; color:var(--text-sec); min-height: 30px;"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ffa39e;">
+            <button class="page-btn" id="btn-trash-prev" onclick="changeTrashPage(-1)" style="padding: 2px 8px;">←</button>
+            <span style="font-size: 11px; color: var(--text-sec);" id="trash-page-indicator">第 1 / 1 页</span>
+            <button class="page-btn" id="btn-trash-next" onclick="changeTrashPage(1)" style="padding: 2px 8px;">→</button>
+        </div>
     </div>
 </div>
 
 <div class="overlay" id="modalOverlay" onclick="closeAllModals()"></div>
 
 <div class="dialog" id="bookModal">
-    <h3>新建独立场景账本</h3>
-    <input type="text" id="newBookName" placeholder="如：日常家用、旅行专款" style="width:100%; margin-bottom:15px;">
+    <h3>管理与新建场景账本</h3>
+    <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:5px;">📋 已有账本列表（支持彻底删除）</label>
+    <div id="modal-book-manage-list" style="max-height:140px; overflow-y:auto; margin-bottom:15px; border:1px solid #e5e5ea; padding:5px; border-radius:8px;"></div>
+    <hr style="border:none; border-top:1px dashed #d2d2d7; margin-bottom:12px;">
+    <label style="font-size:12px; color:var(--text-sec); font-weight:bold;">➕ 新建独立场景账本</label>
+    <input type="text" id="newBookName" placeholder="如：日常家用、旅行专款" style="width:100%; margin-top:5px; margin-bottom:15px;">
     <div class="flex-gap">
         <button class="btn-p" onclick="executeAddBook()">确认创建</button>
-        <button onclick="closeAllModals()">取消</button>
+        <button onclick="closeAllModals()">关闭返回</button>
     </div>
 </div>
 
 <div class="dialog" id="accountModal">
     <h3>管理资产账户</h3>
-    <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:5px;">📋 已有账户列表（支持销毁）</label>
-    <div id="modal-account-manage-list" style="max-height:120px; overflow-y:auto; margin-bottom:15px; border:1px solid #e5e5ea; padding:5px; border-radius:8px;"></div>
+    <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:5px;">📋 已有账户列表（支持修改、销毁）</label>
+    <div id="modal-account-manage-list" style="max-height:160px; overflow-y:auto; margin-bottom:15px; border:1px solid #e5e5ea; padding:5px; border-radius:8px;"></div>
     <hr style="border:none; border-top:1px dashed #d2d2d7; margin-bottom:12px;">
     <label style="font-size:12px; color:var(--text-sec); font-weight:bold;">➕ 新增资产账户</label>
     <div class="flex-gap" style="flex-direction:column; gap:8px; margin-top:5px;">
         <input type="text" id="newAccName" placeholder="账户名：如 招商信用卡、花呗">
         <select id="newAccType">
-            <option value="asset">普通资产账户 (现金/微信/银行c)</option>
+            <option value="asset">普通资产账户 (现金/微信/银行卡)</option>
             <option value="debt">负债还款类账户 (信用卡/花呗/借贷)</option>
         </select>
         <input type="number" id="newAccBal" placeholder="初始余额/欠款初始金额">
@@ -315,7 +332,10 @@
     let currentChartStyleGlobal = 'bar'; 
 
     let currentPageGlobal = 1;
-    const recordsPerPage = 10; 
+    const recordsPerPage = 10;
+
+    let currentTrashPageGlobal = 1; 
+    const trashPerPage = 5;          
 
     window.onload = function() {
         if(localStorage.getItem('dark_mode_active') === 'true') {
@@ -339,7 +359,7 @@
         const yFilter = document.getElementById('filterYear');
         const currVal = yFilter.value || new Date().getFullYear().toString();
         yFilter.innerHTML = '';
-        years.forEach(y => yFilter.innerHTML += `<option value="${y}">${y}年</option>`);
+        years.forEach(y => yFilter.innerHTML += `<option value="${y}">${y}</option>`);
         if(years.includes(currVal)) {
             yFilter.value = currVal;
         } else if (years.length > 0) {
@@ -473,6 +493,24 @@
         refreshUI();
     }
 
+    function changeTrashPage(direction) {
+        currentTrashPageGlobal += direction;
+        refreshUI();
+    }
+
+    function executeClearTrash() {
+        if (trashBin.length === 0) {
+            alert("回收站本来就是空的哦！");
+            return;
+        }
+        if (confirm("🚨 警告：确定要彻底清空回收站吗？\n清空后这些账单将永久消失，无法再次恢复！")) {
+            trashBin = [];               
+            currentTrashPageGlobal = 1;  
+            saveAndRefresh();            
+            alert("✅ 回收站已成功彻底清空！");
+        }
+    }
+
     function refreshUI() {
         const year = document.getElementById('filterYear').value || "2026";
         const month = document.getElementById('filterMonth').value;
@@ -587,9 +625,30 @@
 
         const trashRender = document.getElementById('trash-list-render');
         document.getElementById('trash-count').innerText = trashBin.length;
-        trashRender.innerHTML = trashBin.length === 0 ? '回收站空空如也' : '';
-        trashBin.forEach(t => {
-            trashRender.innerHTML += `<div>${t.memo} - ￥${t.amount} <span style="color:var(--primary); cursor:pointer" onclick="restoreRecord(${t.id})">[🛟恢复]</span></div>`;
+        
+        const totalTrashCount = trashBin.length;
+        const maxTrashPageCount = Math.ceil(totalTrashCount / trashPerPage) || 1;
+        
+        if (currentTrashPageGlobal > maxTrashPageCount) currentTrashPageGlobal = maxTrashPageCount;
+        if (currentTrashPageGlobal < 1) currentTrashPageGlobal = 1;
+        
+        const tStartIndex = (currentTrashPageGlobal - 1) * trashPerPage;
+        const tEndIndex = tStartIndex + trashPerPage;
+        let currentTrashPageRecords = trashBin.slice(tStartIndex, tEndIndex);
+        
+        document.getElementById('btn-trash-prev').disabled = (currentTrashPageGlobal === 1);
+        document.getElementById('btn-trash-next').disabled = (currentTrashPageGlobal === maxTrashPageCount);
+        document.getElementById('trash-page-indicator').innerText = `第 ${currentTrashPageGlobal} / ${maxTrashPageCount} 页`;
+        
+        trashRender.innerHTML = currentTrashPageRecords.length === 0 ? '回收站空空如也' : '';
+        currentTrashPageRecords.forEach(t => {
+            trashRender.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px dotted #fff1f0; padding-bottom:4px;">
+                    <div style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        ${t.memo} - <span style="color:var(--danger); font-weight:bold;">￥${t.amount}</span>
+                    </div>
+                    <span style="color:var(--primary); cursor:pointer; flex-shrink:0; font-size:11px;" onclick="restoreRecord(${t.id})">[🛟恢复]</span>
+                </div>`;
         });
 
         if (month !== 'all') {
@@ -604,7 +663,37 @@
             else { document.getElementById('budgetAlertTip').innerText = '🔋 财务健康'; }
         }
 
-        renderCharts(currentChartStyleGlobal, catStats);
+        let trendLabels = [];
+        let trendValues = [];
+        if (month === 'all') {
+            trendLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            trendValues = Array(12).fill(0);
+            records.forEach(r => {
+                const rYear = r.date.split('-')[0];
+                const rMonth = parseInt(r.date.split('-')[1]);
+                if (rYear === year && r.type === 'expense') {
+                    trendValues[rMonth - 1] += r.amount;
+                }
+            });
+        } else {
+            trendLabels = ['1-5日', '6-10日', '11-15日', '16-20日', '21-25日', '26-30日+'];
+            trendValues = Array(6).fill(0);
+            records.forEach(r => {
+                const rYear = r.date.split('-')[0];
+                const rMonth = r.date.split('-')[1];
+                const rDay = parseInt(r.date.split('-')[2]);
+                if (rYear === year && rMonth === month && r.type === 'expense') {
+                    if (rDay <= 5) trendValues[0] += r.amount;
+                    else if (rDay <= 10) trendValues[1] += r.amount;
+                    else if (rDay <= 15) trendValues[2] += r.amount;
+                    else if (rDay <= 20) trendValues[3] += r.amount;
+                    else if (rDay <= 25) trendValues[4] += r.amount;
+                    else trendValues[5] += r.amount;
+                }
+            });
+        }
+
+        renderCharts(currentChartStyleGlobal, catStats, trendLabels, trendValues);
         if (month !== 'all') renderCalendar(year, month);
     }
 
@@ -613,7 +702,7 @@
         refreshUI();
     }
 
-    function renderCharts(style, catStatsInput) {
+    function renderCharts(style, catStatsInput, trendLabels, trendValues) {
         let chartContainer = document.getElementById('flagshipChart').parentElement;
         chartContainer.innerHTML = '<canvas id="flagshipChart"></canvas>'; 
         let ctx = document.getElementById('flagshipChart').getContext('2d');
@@ -629,8 +718,8 @@
             data = Object.values(stats);
             colors = labels.map(() => document.body.classList.contains('dark-mode') ? '#ffb347' : '#ff9500');
         } else {
-            labels = ['1-5日', '6-10日', '11-15日', '16-20日', '21-25日', '26-30日'];
-            data = [420, 890, 560, 1200, 310, 650];
+            labels = trendLabels || [];
+            data = trendValues || [];
             colors = ['#007aff'];
         }
 
@@ -719,7 +808,17 @@
         const idx = records.findIndex(r => r.id === id);
         if(idx > -1) {
             let item = records.splice(idx, 1)[0];
+            if(item.type === 'transfer') {
+                adjustAccountBalance(item.fromAccount, item.amount);
+                adjustAccountBalance(item.toAccount, -item.amount);
+            } else {
+                adjustAccountBalance(item.account, item.type === 'income' ? -item.amount : item.amount);
+            }
+            
             trashBin.push(item);
+            if (trashBin.length > 20) {
+                trashBin.shift(); 
+            }
             saveAndRefresh();
         }
     }
@@ -728,6 +827,12 @@
         const idx = trashBin.findIndex(t => t.id === id);
         if(idx > -1) {
             let item = trashBin.splice(idx, 1)[0];
+            if(item.type === 'transfer') {
+                adjustAccountBalance(item.fromAccount, -item.amount);
+                adjustAccountBalance(item.toAccount, item.amount);
+            } else {
+                adjustAccountBalance(item.account, item.type === 'income' ? item.amount : -item.amount);
+            }
             records.push(item);
             saveAndRefresh();
         }
@@ -759,8 +864,56 @@
         diaries = JSON.parse(localStorage.getItem(`diary_v5_${currentBook}`)) || {};
         if(accounts.length === 0) { accounts = [{name:'默认钱包', type:'asset', balance:1000}]; }
         currentPageGlobal = 1;
+        currentTrashPageGlobal = 1;
         setRecordType('expense');
         refreshUI();
+    }
+
+    function showBookManagementModal() {
+        renderModalBookList();
+        showModal('bookModal');
+    }
+
+    function renderModalBookList() {
+        const container = document.getElementById('modal-book-manage-list');
+        if(!container) return;
+        container.innerHTML = '';
+        books.forEach((b, index) => {
+            const isCurrent = (b === currentBook) ? ' <span style="color:var(--primary); font-size:11px; font-weight:bold;">(使用中)</span>' : '';
+            container.innerHTML += `
+                <div class="manage-acc-item">
+                    <div><strong>${b}</strong>${isCurrent}</div>
+                    <button class="btn-d" style="padding:4px 8px; font-size:11px; border-radius:4px; width:auto !important;" onclick="executeDeleteBook(${index})">🗑️ 删除</button>
+                </div>
+            `;
+        });
+    }
+
+    function executeDeleteBook(index) {
+        if (books.length <= 1) {
+            alert("🛡️ 保护机制触发：你的本地系统里必须保留至少一个账本底盘！");
+            return;
+        }
+        
+        const targetBook = books[index];
+        if (confirm(`🚨 极致危险警告 🚨\n你确定要彻底删除账本“${targetBook}”吗？\n删除后该账本内所有的收支账单、流水记录、绑定的钱包余额及随笔日记全会被强行注销粉碎，不可恢复！`)) {
+            localStorage.removeItem(`recs_${targetBook}`);
+            localStorage.removeItem(`trash_${targetBook}`);
+            localStorage.removeItem(`accs_${targetBook}`);
+            localStorage.removeItem(`budget_${targetBook}`);
+            localStorage.removeItem(`diary_v5_${targetBook}`);
+            
+            books.splice(index, 1);
+            localStorage.setItem('flag_books', JSON.stringify(books));
+            
+            if (currentBook === targetBook) {
+                currentBook = books[0];
+                localStorage.setItem('cur_flag_book', currentBook);
+            }
+            
+            alert(`✅ 账本“${targetBook}”及内部所有缓存信息已全部被抹除解绑！`);
+            location.reload(); 
+        }
     }
 
     function showAccountManagementModal() {
@@ -780,11 +933,40 @@
             const tag = acc.type === 'debt' ? '🔻负债' : '🔹资产';
             container.innerHTML += `
                 <div class="manage-acc-item">
-                    <div><strong>${acc.name}</strong> <span style="font-size:10px; color:var(--text-sec);">(${tag} ￥${acc.balance})</span></div>
-                    <button class="btn-d" style="padding:4px 8px; font-size:11px; border-radius:4px;" onclick="executeDeleteAccount(${index})">🗑️ 销毁</button>
+                    <div style="flex:1; min-width:0; padding-right:8px;">
+                        <strong>${acc.name}</strong> <br>
+                        <span style="font-size:11px; color:var(--text-sec);">(${tag} ￥${acc.balance})</span>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                        <button class="btn-p" style="padding:4px 8px; font-size:11px; border-radius:4px; width:auto !important; background:var(--warning);" onclick="executeEditAccountBalance(${index})">✏️ 修改</button>
+                        <button class="btn-d" style="padding:4px 8px; font-size:11px; border-radius:4px; width:auto !important;" onclick="executeDeleteAccount(${index})">🗑️ 销毁</button>
+                    </div>
                 </div>
             `;
         });
+    }
+
+    function executeEditAccountBalance(index) {
+        const acc = accounts[index];
+        const tipText = acc.type === 'debt' 
+            ? '请输入新的欠款金额（输入正数即可，系统会自动转为负数负债）：' 
+            : '请输入新的账户余额：';
+            
+        const newBalStr = prompt(`正在修改账户“${acc.name}”的资产金额\n当前金额为: ￥${acc.balance}\n\n${tipText}`, Math.abs(acc.balance));
+        
+        if (newBalStr !== null) {
+            const bal = parseFloat(newBalStr);
+            if (isNaN(bal) || bal < 0) {
+                alert("请输入有效的正数金额！");
+                return;
+            }
+            
+            acc.balance = acc.type === 'debt' ? -Math.abs(bal) : bal;
+            
+            saveAndRefresh();          
+            renderModalAccountList();  
+            alert(`✅ 账户“${acc.name}”的金额已成功校准为 ￥${acc.balance}！`);
+        }
     }
 
     function executeDeleteAccount(index) {
@@ -895,6 +1077,28 @@
         }
     }
 
+    function executeDeleteYear() {
+        const currentYear = document.getElementById('filterYear').value;
+        if (!currentYear) return;
+
+        if (years.length <= 1) {
+            alert("🛡️ 保护机制触发：必须保留至少一个年份底盘！");
+            return;
+        }
+
+        if (confirm(`⚠️ 确定要删除“${currentYear}”年吗？\n\n删除后该年份将从下拉菜单中消失。同时，为了账目严丝合缝，当前账本中属于 ${currentYear} 年的所有收支流水记录也将会被一键彻底清理！`)) {
+            years = years.filter(y => y !== currentYear);
+            localStorage.setItem('flag_years', JSON.stringify(years));
+
+            records = records.filter(r => r.date.split('-')[0] !== currentYear);
+
+            document.getElementById('filterYear').value = years[0];
+
+            saveAndRefresh();
+            alert(`✅ “${currentYear}”年及当前账本的关联数据已成功彻底清理！`);
+        }
+    }
+
     function executeAddAccount() {
         const name = document.getElementById('newAccName').value.trim();
         const type = document.getElementById('newAccType').value;
@@ -920,7 +1124,70 @@
         localStorage.setItem(`trash_${currentBook}`, JSON.stringify(trashBin));
         localStorage.setItem(`accs_${currentBook}`, JSON.stringify(accounts));
         renderDropdowns(); 
+        
+        populateAccountDropdown();
+        populateTransferDropdowns();
+        
         refreshUI();
+    }
+
+    function executeExportExcel() {
+        if (!records || records.length === 0) {
+            alert("当前账本还没有任何流水数据可以导出哦！");
+            return;
+        }
+        
+        const sortedRecords = [...records].sort((a, b) => {
+            return new Date(a.date) - new Date(b.date); 
+        });
+        
+        const formattedData = sortedRecords.map((r, index) => {
+            let typeText = "未知";
+            if(r.type === 'expense') typeText = "支出 ➖";
+            if(r.type === 'income') typeText = "收入 ➕";
+            if(r.type === 'transfer') typeText = "转账 🔄";
+            
+            const dateParts = r.date.split('-'); 
+            const yearStr = dateParts[0] ? dateParts[0] + "年" : "--";
+            const monthStr = dateParts[1] ? dateParts[1] + "月" : "--";
+            
+            return {
+                "序号": index + 1,
+                "所属年份": yearStr,   
+                "所属月份": monthStr,  
+                "交易日期": r.date,    
+                "交易类型": typeText,
+                "金额 (元)": r.amount,
+                "一级大类": r.mainCat || "--",
+                "二级细分": r.subCat || "--",
+                "交易账户/转出方": r.account || r.fromAccount || "--",
+                "转入账户(仅限转账)": r.toAccount || "--",
+                "备注说明": r.memo || "",
+                "📍 地理位置": r.location || "未标记",
+                "周期属性": r.recurring === "monthly" ? "每月固定自动记" : "单次流水"
+            };
+        });
+        
+        try {
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "账本流水正序明细");
+            
+            const wscols = [
+                {wch: 6}, {wch: 10}, {wch: 10}, {wch: 14}, {wch: 12}, {wch: 12},
+                {wch: 14}, {wch: 14}, {wch: 18}, {wch: 18}, {wch: 25}, {wch: 20}, {wch: 16}
+            ];
+            worksheet['!cols'] = wscols;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const finalFileName = `${currentBook}_时间正序账单_${todayStr}.xlsx`;
+            
+            XLSX.writeFile(workbook, finalFileName);
+            
+        } catch (error) {
+            console.error("导出Excel失败:", error);
+            alert("导出失败，请检查浏览器兼容性或联系技术支持！");
+        }
     }
 </script>
 
