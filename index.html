@@ -15,31 +15,36 @@
             --bg: #1c1c1e; --card: #2c2c2e; --text: #ffffff; --text-sec: #aeaeae;
             --border: #444446;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 10px; background-color: var(--bg); color: var(--text); transition: background-color 0.3s, color 0.3s; -webkit-text-size-adjust: 100%; }
-        .container { max-width: 600px; margin: 0 auto; box-sizing: border-box; }
-        .card { background: var(--card); padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; transition: background-color 0.3s; }
+        /* 【极致防御】锁死最外层屏幕，无论如何都不允许手机端出现左右晃动、溢出边界 */
+        html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 10px; background-color: var(--bg); color: var(--text); transition: background-color 0.3s, color 0.3s; box-sizing: border-box; }
+        
+        .container { max-width: 600px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+        .card { background: var(--card); padding: 16px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; transition: background-color 0.3s; box-sizing: border-box; width: 100%; overflow: hidden; }
         h1, h2, h3 { margin-top: 0; font-weight: 600; }
         
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        select, input, button { padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; background: var(--card); color: var(--text); box-sizing: border-box; transition: all 0.3s; }
+        
+        /* 【核心修正】彻底封死所有输入框、选择框的整体尺寸，内边距算在总宽度内，绝不撑大卡片 */
+        select, input, button { padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; background: var(--card); color: var(--text); box-sizing: border-box; width: 100%; min-width: 0; transition: all 0.3s; }
         button { cursor: pointer; border: none; font-weight: bold; }
         .btn-p { background: var(--primary); color: white; }
         .btn-d { background: var(--danger); color: white; }
         .flex-gap { display: flex; gap: 8px; flex-wrap: wrap; }
         
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
-        .num-large { font-size: 18px; font-weight: bold; margin-top: 5px; }
+        .num-large { font-size: 18px; font-weight: bold; margin-top: 5px; word-break: break-all; }
         
         .budget-progress { width: 100%; background: #e5e5ea; height: 8px; border-radius: 4px; margin-top: 5px; overflow: hidden; }
         .budget-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.3s; }
         .alert-warning { background: var(--warning) !important; }
         .alert-danger { background: var(--danger) !important; }
-
+    
         .type-tabs { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 12px; border: 1px solid var(--primary); }
         .tab-btn { flex: 1; text-align: center; padding: 10px; background: transparent; color: var(--primary); font-weight: bold; border-radius: 0; }
         .tab-btn.active { background: var(--primary); color: white; }
         
-        /* 日历排版 */
+        /* 日历排版自适应调整 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; font-size: 12px; }
         .cal-day { padding: 8px 0; background: var(--bg); border-radius: 8px; position: relative; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
         .cal-day:hover { background: #e5e5ea; }
@@ -47,24 +52,28 @@
         .cal-day.checked-in { background: #e8f5e9; } 
         .cal-day.checked-in strong { color: var(--success); }
         .cal-cost { font-size: 9px; color: var(--danger); display: block; margin-top: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-
-        .flow-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .flow-meta { font-size: 12px; color: var(--text-sec); margin-top: 3px; }
+    
+        /* 【检索流水全面加固】左右两端严格对齐，文字过长自动变省略号，绝对撑不开屏幕 */
+        .flow-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); width: 100%; box-sizing: border-box; overflow: hidden; gap: 10px; }
+        .flow-item > div:first-child { flex: 1; min-width: 0; overflow: hidden; }
+        .flow-item strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .flow-meta { font-size: 12px; color: var(--text-sec); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .flow-item > div:last-child { text-align: right; flex-shrink: 0; }
         
         .dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; z-index: 100; width: 90%; max-width: 380px; color: var(--text); box-sizing: border-box; max-height: 90vh; overflow-y: auto; }
         .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 99; }
         
         .chart-btn-active { background: var(--primary) !important; color: white !important; }
         .manage-acc-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 6px; }
-
-        .page-btn { padding: 4px 10px; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    
+        .page-btn { padding: 4px 10px; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); width: auto !important; }
         .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         
-        /* 【核心改动 1】极致微调增删按钮的宽度，固定为 36px，文字精简为 ➕/❌ 符号，确保在任何窄屏上都能横向并排站下 */
-        .btn-mini-del { padding: 0; font-size: 11px; background: #fff1f0; border: 1px solid #ffa39e; color: var(--danger); font-weight: bold; width: 36px; height: 38px; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-mini-add { padding: 0; font-size: 11px; background: #f6ffed; border: 1px solid #b7eb8f; color: var(--success); font-weight: bold; width: 36px; height: 38px; display: inline-flex; align-items: center; justify-content: center; }
-
-        /* 【核心改动 2】双端一致铁律：移除 @media 媒体查询裂变，手机端和电脑端强制共享同一套 6 栏网格锁死比例布局 */
+        /* 迷你增删分类控制键，高度统一 */
+        .btn-mini-del { padding: 0; font-size: 11px; background: #fff1f0; border: 1px solid #ffa39e; color: var(--danger); font-weight: bold; width: 36px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-mini-add { padding: 0; font-size: 11px; background: #f6ffed; border: 1px solid #b7eb8f; color: var(--success); font-weight: bold; width: 36px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    
+        /* 双端单行 6 栏网格强制等比例缩小，min-width: 0 极其关键 */
         .cat-responsive-row { 
             display: grid !important; 
             grid-template-columns: 1fr 36px 36px 1fr 36px 36px !important; 
@@ -73,8 +82,7 @@
             align-items: center !important; 
             box-sizing: border-box !important; 
         }
-        /* 强制覆盖下拉框的独立样式，防止其随屏幕缩放变形 */
-        .cat-responsive-row select { width: 100% !important; padding: 10px 4px !important; font-size: 13px !important; height: 38px; display: block; }
+        .cat-responsive-row select { width: 100% !important; padding: 10px 4px !important; font-size: 13px !important; height: 38px; display: block; min-width: 0; }
     </style>
 </head>
 <body>
